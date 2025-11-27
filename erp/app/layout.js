@@ -12,8 +12,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata = {
-  title: "ERP Portal",
-  description: "Modern Enterprise Resource Planning Dashboard",
+  title: "Academic ERP Portal",
+  description: "Academic ERP Portal for the students and faculty of the university",
 };
 
 export default function RootLayout({ children }) {
