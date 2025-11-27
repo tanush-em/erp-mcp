@@ -1,0 +1,28 @@
+{
+  "server": {
+    "name": "erp-mcp-server",
+    "version": "1.0.0",
+    "description": "Context-aware MCP server for ERP MongoDB database management"
+  },
+  "mongodb": {
+    "uri": "mongodb://localhost:27017/erp",
+    "database": "erp",
+    "collections": {
+      "students": "students",
+      "faculty": "faculty", 
+      "courses": "courses",
+      "attendance": "attendances",
+      "leave_requests": "leaverequests",
+      "timetables": "timetables"
+    }
+  },
+  "features": {
+    "context_aware": true,
+    "analytics": true,
+    "complex_queries": true,
+    "soft_delete": true,
+    "attendance_tracking": true,
+    "leave_management": true,
+    "timetable_management": true
+  }
+}

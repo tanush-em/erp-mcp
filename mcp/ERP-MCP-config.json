@@ -1,0 +1,9 @@
+{
+  "command": "/Users/tanush/Documents/repos/fyp/ERP/mcp/venv/bin/python3",
+  "args": ["server.py"],
+  "cwd": "/Users/tanush/Documents/repos/fyp/ERP/mcp",
+  "env": {
+    "MONGODB_URI": "mongodb://localhost:27017/erp",
+    "PYTHONPATH": "/Users/tanush/Documents/repos/fyp/ERP/mcp"
+  }
+}
