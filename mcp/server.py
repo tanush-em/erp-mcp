@@ -7,6 +7,7 @@ Provides intelligent access to ERP data with natural language capabilities
 import asyncio
 import json
 import logging
+import os
 from datetime import datetime, date
 from typing import Any, Dict, List, Optional, Union
 from dataclasses import dataclass
@@ -35,17 +36,27 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # MongoDB connection
-MONGODB_URI = "mongodb://localhost:27017/erp"
+MONGODB_URI = os.getenv("MONGODB_URI", "mongodb://localhost:27017/erp")
 client = AsyncIOMotorClient(MONGODB_URI)
 db = client.erp
 
 # Collections
 students_collection = db.students
-faculty_collection = db.faculty
+faculty_collection = db.faculties
 courses_collection = db.courses
 attendance_collection = db.attendances
 leave_requests_collection = db.leaverequests
 timetables_collection = db.timetables
+
+# Load system instructions
+SYSTEM_INSTRUCTIONS_PATH = os.path.join(os.path.dirname(__file__), "system_instructions.json")
+system_instructions = {}
+if os.path.exists(SYSTEM_INSTRUCTIONS_PATH):
+    try:
+        with open(SYSTEM_INSTRUCTIONS_PATH, 'r') as f:
+            system_instructions = json.load(f)
+    except Exception as e:
+        logger.warning(f"Could not load system instructions: {e}")
 
 # MCP Server instance
 server = Server("erp-mcp-server")
@@ -53,7 +64,13 @@ server = Server("erp-mcp-server")
 @server.list_resources()
 async def handle_list_resources() -> List[Resource]:
     """List available ERP resources"""
-    return [
+    resources = [
+        Resource(
+            uri="erp://system-instructions",
+            name="System Instructions",
+            description="Interaction guidelines, tone, and conversation flow instructions for the ERP MCP server",
+            mimeType="application/json"
+        ),
         Resource(
             uri="erp://students",
             name="Students",
@@ -91,11 +108,16 @@ async def handle_list_resources() -> List[Resource]:
             mimeType="application/json"
         )
     ]
+    return resources
 
 @server.read_resource()
 async def handle_read_resource(uri: str) -> str:
     """Read ERP resource data"""
-    if uri == "erp://students":
+    if uri == "erp://system-instructions":
+        # Return system instructions for interaction guidelines
+        return json.dumps(system_instructions, indent=2, default=str)
+    
+    elif uri == "erp://students":
         cursor = students_collection.find({"isActive": True})
         students = await cursor.to_list(length=1000)
         return json.dumps(students, default=str)
@@ -428,8 +450,11 @@ async def handle_list_tools() -> List[Tool]:
                             "period": {"type": "integer"},
                             "type": {"type": "string", "enum": ["lecture", "break", "lab", "tutorial"]},
                             "courseCode": {"type": "string"},
+                            "course": {"type": "string", "description": "Course ObjectId reference"},
+                            "faculty": {"type": "string", "description": "Faculty ObjectId reference"},
                             "room": {"type": "string"}
-                        }
+                        },
+                        "required": ["period", "type", "courseCode"]
                     }, "description": "Time slots for the day"}
                 }
             }
@@ -754,13 +779,26 @@ async def get_course(args: Dict[str, Any]) -> List[TextContent]:
 async def create_course(args: Dict[str, Any]) -> List[TextContent]:
     """Create a new course"""
     try:
+        # Validate facultyInCharge ObjectId if provided
+        faculty_in_charge = None
+        if args.get("facultyInCharge"):
+            try:
+                faculty_id = ObjectId(args["facultyInCharge"])
+                # Verify faculty exists
+                faculty = await faculty_collection.find_one({"_id": faculty_id})
+                if not faculty:
+                    return [TextContent(type="text", text=f"Faculty with ID {args['facultyInCharge']} not found")]
+                faculty_in_charge = faculty_id
+            except InvalidId:
+                return [TextContent(type="text", text=f"Invalid faculty ID format: {args['facultyInCharge']}")]
+        
         course_data = {
             "code": args["code"],
             "title": args["title"],
             "credits": args["credits"],
             "semester": args["semester"],
             "description": args.get("description", ""),
-            "facultyInCharge": ObjectId(args["facultyInCharge"]) if args.get("facultyInCharge") else None,
+            "facultyInCharge": faculty_in_charge,
             "isActive": args.get("isActive", True),
             "createdAt": datetime.now(),
             "updatedAt": datetime.now()
@@ -784,7 +822,18 @@ async def update_course(args: Dict[str, Any]) -> List[TextContent]:
                 update_data[field] = args[field]
         
         if "facultyInCharge" in args:
-            update_data["facultyInCharge"] = ObjectId(args["facultyInCharge"]) if args["facultyInCharge"] else None
+            if args["facultyInCharge"]:
+                try:
+                    faculty_id = ObjectId(args["facultyInCharge"])
+                    # Verify faculty exists
+                    faculty = await faculty_collection.find_one({"_id": faculty_id})
+                    if not faculty:
+                        return [TextContent(type="text", text=f"Faculty with ID {args['facultyInCharge']} not found")]
+                    update_data["facultyInCharge"] = faculty_id
+                except InvalidId:
+                    return [TextContent(type="text", text=f"Invalid faculty ID format: {args['facultyInCharge']}")]
+            else:
+                update_data["facultyInCharge"] = None
         
         result = await courses_collection.update_one(
             {"_id": course_id},
@@ -827,12 +876,21 @@ async def record_attendance(args: Dict[str, Any]) -> List[TextContent]:
         if not student:
             return [TextContent(type="text", text="Student not found")]
         
+        # Convert date strings to datetime objects
+        attendance_records = []
+        for record in args["attendance_data"]:
+            date_obj = datetime.strptime(record["date"], "%Y-%m-%d") if isinstance(record["date"], str) else record["date"]
+            attendance_records.append({
+                "date": date_obj,
+                "status": record["status"]
+            })
+        
         attendance_data = {
             "student": student["_id"],
             "studentRoll": args["student_roll"],
             "month": args["month"],
             "year": args["year"],
-            "attendance": args["attendance_data"],
+            "attendance": attendance_records,
             "createdAt": datetime.now(),
             "updatedAt": datetime.now()
         }
@@ -1012,10 +1070,36 @@ async def get_leave_requests(args: Dict[str, Any]) -> List[TextContent]:
 async def create_timetable(args: Dict[str, Any]) -> List[TextContent]:
     """Create timetable for a day and semester"""
     try:
+        # Process slots to convert course and faculty strings to ObjectIds if provided
+        processed_slots = []
+        for slot in args["slots"]:
+            processed_slot = {
+                "period": slot["period"],
+                "type": slot["type"],
+                "courseCode": slot["courseCode"],
+                "room": slot.get("room")
+            }
+            
+            # Convert course string to ObjectId if provided
+            if "course" in slot and slot["course"]:
+                try:
+                    processed_slot["course"] = ObjectId(slot["course"])
+                except InvalidId:
+                    return [TextContent(type="text", text=f"Invalid course ObjectId: {slot['course']}")]
+            
+            # Convert faculty string to ObjectId if provided
+            if "faculty" in slot and slot["faculty"]:
+                try:
+                    processed_slot["faculty"] = ObjectId(slot["faculty"])
+                except InvalidId:
+                    return [TextContent(type="text", text=f"Invalid faculty ObjectId: {slot['faculty']}")]
+            
+            processed_slots.append(processed_slot)
+        
         timetable_data = {
             "dayOfWeek": args["dayOfWeek"],
             "semester": args["semester"],
-            "slots": args["slots"],
+            "slots": processed_slots,
             "isActive": True,
             "createdAt": datetime.now(),
             "updatedAt": datetime.now()
@@ -1215,19 +1299,39 @@ async def complex_query(args: Dict[str, Any]) -> List[TextContent]:
             
             conflicts = []
             for timetable in timetables:
-                # Check for room conflicts
-                rooms_used = {}
+                # Check for room-period conflicts within the same day
+                room_period_map = {}
                 for slot in timetable["slots"]:
-                    if slot.get("room"):
+                    if slot.get("room") and slot.get("period"):
                         room = slot["room"]
-                        if room in rooms_used:
+                        period = slot["period"]
+                        key = f"{room}-{period}"
+                        if key in room_period_map:
                             conflicts.append({
                                 "day": timetable["dayOfWeek"],
                                 "semester": timetable["semester"],
                                 "room": room,
-                                "conflict": f"Room {room} used in multiple slots"
+                                "period": period,
+                                "conflict": f"Room {room} used in multiple slots at period {period}"
                             })
-                        rooms_used[room] = slot
+                        room_period_map[key] = slot
+                
+                # Check for faculty conflicts (same faculty teaching at same period)
+                faculty_period_map = {}
+                for slot in timetable["slots"]:
+                    if slot.get("faculty") and slot.get("period"):
+                        faculty = slot["faculty"]
+                        period = slot["period"]
+                        key = f"{faculty}-{period}"
+                        if key in faculty_period_map:
+                            conflicts.append({
+                                "day": timetable["dayOfWeek"],
+                                "semester": timetable["semester"],
+                                "faculty": str(faculty),
+                                "period": period,
+                                "conflict": f"Faculty {faculty} assigned to multiple slots at period {period}"
+                            })
+                        faculty_period_map[key] = slot
             
             return [TextContent(type="text", text=json.dumps(conflicts, default=str))]
         

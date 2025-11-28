@@ -1,8 +1,3 @@
-#!/usr/bin/env python3
-"""
-Test script for the ERP MCP Server
-"""
-
 import asyncio
 import json
 from server import (

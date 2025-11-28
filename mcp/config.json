@@ -2,14 +2,14 @@
   "server": {
     "name": "erp-mcp-server",
     "version": "1.0.0",
-    "description": "Context-aware MCP server for ERP MongoDB database management"
+    "description": "Context-aware MCP server for ERP Data Systems"
   },
   "mongodb": {
     "uri": "mongodb://localhost:27017/erp",
     "database": "erp",
     "collections": {
       "students": "students",
-      "faculty": "faculty", 
+      "faculty": "faculties", 
       "courses": "courses",
       "attendance": "attendances",
       "leave_requests": "leaverequests",

@@ -1,9 +1,24 @@
 {
-  "command": "/Users/tanush/Documents/repos/fyp/ERP/mcp/venv/bin/python3",
-  "args": ["server.py"],
-  "cwd": "/Users/tanush/Documents/repos/fyp/ERP/mcp",
-  "env": {
-    "MONGODB_URI": "mongodb://localhost:27017/erp",
-    "PYTHONPATH": "/Users/tanush/Documents/repos/fyp/ERP/mcp"
+  "_note": "This is the configuration snippet for Claude Desktop. Copy the 'erp-mcp' entry below into your Claude Desktop config file.",
+  "_claude_desktop_config_location": "~/Library/Application Support/Claude/claude_desktop_config.json",
+  "_full_config_example": {
+    "mcpServers": {
+      "erp-mcp": {
+        "command": "/Users/tanush/Documents/repos/erp-mcp/mcp/venv/bin/python3",
+        "args": ["/Users/tanush/Documents/repos/erp-mcp/mcp/server.py"],
+        "env": {
+          "MONGODB_URI": "mongodb://localhost:27017/erp",
+          "PYTHONPATH": "/Users/tanush/Documents/repos/erp-mcp/mcp"
+        }
+      }
+    }
+  },
+  "erp-mcp": {
+    "command": "/Users/tanush/Documents/repos/erp-mcp/mcp/venv/bin/python3",
+    "args": ["/Users/tanush/Documents/repos/erp-mcp/mcp/server.py"],
+    "env": {
+      "MONGODB_URI": "mongodb://localhost:27017/erp",
+      "PYTHONPATH": "/Users/tanush/Documents/repos/erp-mcp/mcp"
+    }
   }
 }
