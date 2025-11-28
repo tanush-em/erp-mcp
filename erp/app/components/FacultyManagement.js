@@ -3,18 +3,12 @@
 import { useState, useEffect } from 'react';
 import { 
   UserCheck, 
-  Plus, 
   Search, 
-  Filter, 
-  Edit, 
-  Trash2, 
   Eye, 
   Mail, 
-  Phone,
   User,
   CheckCircle,
   XCircle,
-  MoreVertical,
   BookOpen,
   Award
 } from 'lucide-react';
@@ -24,8 +18,6 @@ export default function FacultyManagement() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
-  const [showAddForm, setShowAddForm] = useState(false);
-  const [editingFaculty, setEditingFaculty] = useState(null);
   const [showDetails, setShowDetails] = useState(null);
 
   useEffect(() => {
@@ -35,7 +27,7 @@ export default function FacultyManagement() {
   const fetchFaculty = async () => {
     try {
       setLoading(true);
-      const response = await fetch('/api/data/faculty');
+      const response = await fetch('/api/data/faculties');
       const data = await response.json();
       if (data.success) {
         setFaculty(data.data);
@@ -60,49 +52,6 @@ export default function FacultyManagement() {
     return matchesSearch && matchesStatus;
   });
 
-  const handleAddFaculty = async (facultyData) => {
-    try {
-      // Here you would typically make an API call to add the faculty
-      console.log('Adding faculty:', facultyData);
-      setShowAddForm(false);
-      fetchFaculty(); // Refresh the list
-    } catch (error) {
-      console.error('Error adding faculty:', error);
-    }
-  };
-
-  const handleEditFaculty = async (facultyId, facultyData) => {
-    try {
-      // Here you would typically make an API call to update the faculty
-      console.log('Editing faculty:', facultyId, facultyData);
-      setEditingFaculty(null);
-      fetchFaculty(); // Refresh the list
-    } catch (error) {
-      console.error('Error editing faculty:', error);
-    }
-  };
-
-  const handleDeleteFaculty = async (facultyId) => {
-    if (confirm('Are you sure you want to delete this faculty member?')) {
-      try {
-        // Here you would typically make an API call to delete the faculty
-        console.log('Deleting faculty:', facultyId);
-        fetchFaculty(); // Refresh the list
-      } catch (error) {
-        console.error('Error deleting faculty:', error);
-      }
-    }
-  };
-
-  const toggleFacultyStatus = async (facultyId, currentStatus) => {
-    try {
-      // Here you would typically make an API call to toggle the status
-      console.log('Toggling faculty status:', facultyId, !currentStatus);
-      fetchFaculty(); // Refresh the list
-    } catch (error) {
-      console.error('Error toggling faculty status:', error);
-    }
-  };
 
   if (loading) {
     return (
@@ -127,17 +76,9 @@ export default function FacultyManagement() {
             <UserCheck className="w-6 h-6 text-blue-600" />
             <div>
               <h2 className="text-xl font-semibold text-gray-900">Faculty Management</h2>
-              <p className="text-sm text-gray-500">Manage faculty records and information</p>
+              <p className="text-sm text-gray-500">View faculty records and information</p>
             </div>
           </div>
-          
-          <button 
-            onClick={() => setShowAddForm(true)}
-            className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Add Faculty</span>
-          </button>
         </div>
       </div>
 
@@ -193,20 +134,10 @@ export default function FacultyManagement() {
                   <button
                     onClick={() => setShowDetails(member._id)}
                     className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg"
+                    title="View Details"
                   >
                     <Eye className="w-4 h-4" />
                   </button>
-                  <button
-                    onClick={() => setEditingFaculty(member)}
-                    className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg"
-                  >
-                    <Edit className="w-4 h-4" />
-                  </button>
-                  <div className="relative">
-                    <button className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg">
-                      <MoreVertical className="w-4 h-4" />
-                    </button>
-                  </div>
                 </div>
               </div>
               
@@ -254,171 +185,12 @@ export default function FacultyManagement() {
                   )}
                   <span>{member.isActive ? 'Active' : 'Inactive'}</span>
                 </div>
-                
-                <button
-                  onClick={() => toggleFacultyStatus(member._id, member.isActive)}
-                  className={`px-3 py-1 text-sm rounded-lg transition-colors ${
-                    member.isActive
-                      ? 'text-red-600 hover:bg-red-50'
-                      : 'text-green-600 hover:bg-green-50'
-                  }`}
-                >
-                  {member.isActive ? 'Deactivate' : 'Activate'}
-                </button>
               </div>
             </div>
           </div>
         ))}
       </div>
 
-      {/* Add Faculty Modal */}
-      {showAddForm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
-            <div className="p-6 border-b">
-              <h3 className="text-lg font-medium text-gray-900">Add New Faculty</h3>
-            </div>
-            <div className="p-6">
-              <form className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Full Name</label>
-                  <input
-                    type="text"
-                    required
-                    className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 placeholder-gray-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Employee ID</label>
-                  <input
-                    type="text"
-                    required
-                    className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 placeholder-gray-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Designation</label>
-                  <input
-                    type="text"
-                    required
-                    className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 placeholder-gray-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Email</label>
-                  <input
-                    type="email"
-                    required
-                    className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 placeholder-gray-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Subjects Handled</label>
-                  <input
-                    type="text"
-                    placeholder="Comma-separated subjects"
-                    className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 placeholder-gray-500"
-                  />
-                </div>
-              </form>
-            </div>
-            <div className="p-6 border-t flex justify-end space-x-3">
-              <button
-                onClick={() => setShowAddForm(false)}
-                className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200"
-              >
-                Cancel
-              </button>
-              <button 
-                onClick={() => handleAddFaculty({})}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-              >
-                Add Faculty
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Edit Faculty Modal */}
-      {editingFaculty && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
-            <div className="p-6 border-b">
-              <h3 className="text-lg font-medium text-gray-900">Edit Faculty</h3>
-            </div>
-            <div className="p-6">
-              <form className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Full Name</label>
-                  <input
-                    type="text"
-                    defaultValue={editingFaculty.fullName}
-                    className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 placeholder-gray-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Employee ID</label>
-                  <input
-                    type="text"
-                    defaultValue={editingFaculty.employeeId}
-                    className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 placeholder-gray-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Designation</label>
-                  <input
-                    type="text"
-                    defaultValue={editingFaculty.designation}
-                    className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 placeholder-gray-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Email</label>
-                  <input
-                    type="email"
-                    defaultValue={editingFaculty.email}
-                    className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 placeholder-gray-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Subjects Handled</label>
-                  <input
-                    type="text"
-                    defaultValue={editingFaculty.subjectsHandled?.join(', ')}
-                    placeholder="Comma-separated subjects"
-                    className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 placeholder-gray-500"
-                  />
-                </div>
-                <div>
-                  <label className="flex items-center space-x-2">
-                    <input
-                      type="checkbox"
-                      defaultChecked={editingFaculty.isActive}
-                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                    />
-                    <span className="text-sm font-medium text-gray-700">Active</span>
-                  </label>
-                </div>
-              </form>
-            </div>
-            <div className="p-6 border-t flex justify-end space-x-3">
-              <button
-                onClick={() => setEditingFaculty(null)}
-                className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200"
-              >
-                Cancel
-              </button>
-              <button 
-                onClick={() => handleEditFaculty(editingFaculty._id, {})}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-              >
-                Save Changes
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

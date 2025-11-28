@@ -35,9 +35,9 @@ export default function Dashboard() {
       // Fetch all collections data
       const [studentsRes, facultyRes, coursesRes, attendanceRes, leavesRes] = await Promise.all([
         fetch('/api/data/students'),
-        fetch('/api/data/faculty'),
+        fetch('/api/data/faculties'),
         fetch('/api/data/courses'),
-        fetch('/api/data/attendance'),
+        fetch('/api/data/attendances'),
         fetch('/api/data/leaverequests')
       ]);
 
@@ -258,68 +258,34 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Recent Activity & Quick Actions */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white rounded-lg shadow-sm border">
-          <div className="p-6 border-b">
-            <h3 className="text-lg font-semibold text-gray-900">Recent Activity</h3>
-            <p className="text-sm text-gray-500">Latest system activities</p>
-          </div>
-          <div className="p-6">
-            {recentActivity.length === 0 ? (
-              <div className="text-center py-8">
-                <AlertCircle className="w-8 h-8 mx-auto text-gray-400" />
-                <p className="text-sm text-gray-500 mt-2">No recent activity</p>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {recentActivity.map((activity, index) => (
-                  <div key={index} className="flex items-center space-x-3">
-                    {getStatusIcon(activity.status)}
-                    <div className="flex-1">
-                      <p className="text-sm font-medium text-gray-900">{activity.message}</p>
-                      <p className="text-xs text-gray-500">{activity.date}</p>
-                    </div>
-                    <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(activity.status)}`}>
-                      {activity.status}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+      {/* Recent Activity */}
+      <div className="bg-white rounded-lg shadow-sm border">
+        <div className="p-6 border-b">
+          <h3 className="text-lg font-semibold text-gray-900">Recent Activity</h3>
+          <p className="text-sm text-gray-500">Latest system activities</p>
         </div>
-
-        {/* Quick Actions */}
-        <div className="bg-white rounded-lg shadow-sm border">
-          <div className="p-6 border-b">
-            <h3 className="text-lg font-semibold text-gray-900">Quick Actions</h3>
-            <p className="text-sm text-gray-500">Common tasks and shortcuts</p>
-          </div>
-          <div className="p-6">
-            <div className="grid grid-cols-2 gap-4">
-              <button className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-left">
-                <Calendar className="w-6 h-6 text-blue-600 mb-2" />
-                <div className="text-sm font-medium text-gray-900">Mark Attendance</div>
-                <div className="text-xs text-gray-500">Record daily attendance</div>
-              </button>
-              <button className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-left">
-                <BookOpen className="w-6 h-6 text-green-600 mb-2" />
-                <div className="text-sm font-medium text-gray-900">Add Student</div>
-                <div className="text-xs text-gray-500">Register new student</div>
-              </button>
-              <button className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-left">
-                <Clock className="w-6 h-6 text-purple-600 mb-2" />
-                <div className="text-sm font-medium text-gray-900">View Timetable</div>
-                <div className="text-xs text-gray-500">Check schedule</div>
-              </button>
-              <button className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-left">
-                <AlertCircle className="w-6 h-6 text-orange-600 mb-2" />
-                <div className="text-sm font-medium text-gray-900">Process Leaves</div>
-                <div className="text-xs text-gray-500">Review requests</div>
-              </button>
+        <div className="p-6">
+          {recentActivity.length === 0 ? (
+            <div className="text-center py-8">
+              <AlertCircle className="w-8 h-8 mx-auto text-gray-400" />
+              <p className="text-sm text-gray-500 mt-2">No recent activity</p>
             </div>
-          </div>
+          ) : (
+            <div className="space-y-4">
+              {recentActivity.map((activity, index) => (
+                <div key={index} className="flex items-center space-x-3">
+                  {getStatusIcon(activity.status)}
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-gray-900">{activity.message}</p>
+                    <p className="text-xs text-gray-500">{activity.date}</p>
+                  </div>
+                  <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(activity.status)}`}>
+                    {activity.status}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </div>

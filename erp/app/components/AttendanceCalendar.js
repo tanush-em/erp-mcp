@@ -9,7 +9,6 @@ import {
   CheckCircle, 
   XCircle, 
   Minus,
-  Filter,
   Download,
   Search
 } from 'lucide-react';
@@ -30,7 +29,7 @@ export default function AttendanceCalendar() {
   const fetchAttendanceData = async () => {
     try {
       setLoading(true);
-      const response = await fetch('/api/data/attendance');
+      const response = await fetch('/api/data/attendances');
       const data = await response.json();
       if (data.success) {
         setAttendanceData(data.data);
@@ -133,10 +132,10 @@ export default function AttendanceCalendar() {
     }
     
     return {
-      present: attendanceRecord.presentDays,
-      absent: attendanceRecord.absentDays,
-      total: attendanceRecord.totalDays,
-      percentage: attendanceRecord.attendancePercentage
+      present: attendanceRecord.presentDays || 0,
+      absent: attendanceRecord.absentDays || 0,
+      total: attendanceRecord.totalDays || 0,
+      percentage: attendanceRecord.attendancePercentage || 0
     };
   };
 
@@ -212,11 +211,6 @@ export default function AttendanceCalendar() {
               <Download className="w-4 h-4" />
               <span>Export</span>
             </button>
-            
-            <button className="flex items-center space-x-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700">
-              <Filter className="w-4 h-4" />
-              <span>Bulk Mark</span>
-            </button>
           </div>
         </div>
       </div>
@@ -268,7 +262,7 @@ export default function AttendanceCalendar() {
                     <span className="text-red-600">{stats.absent}</span>
                   </div>
                   <div className="text-gray-600">
-                    {stats.percentage.toFixed(1)}%
+                    {(stats.percentage || 0).toFixed(1)}%
                   </div>
                 </div>
               </button>
@@ -314,7 +308,7 @@ export default function AttendanceCalendar() {
                 <Users className="w-8 h-8 text-purple-600" />
                 <div>
                   <p className="text-sm font-medium text-purple-800">Percentage</p>
-                  <p className="text-2xl font-bold text-purple-900">{getAttendanceStats(selectedStudent.roll).percentage.toFixed(1)}%</p>
+                  <p className="text-2xl font-bold text-purple-900">{(getAttendanceStats(selectedStudent.roll).percentage || 0).toFixed(1)}%</p>
                 </div>
               </div>
             </div>

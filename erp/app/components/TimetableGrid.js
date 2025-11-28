@@ -48,7 +48,7 @@ export default function TimetableGrid() {
 
   const fetchFaculty = async () => {
     try {
-      const response = await fetch('/api/data/faculty');
+      const response = await fetch('/api/data/faculties');
       const data = await response.json();
       if (data.success) {
         setFaculty(data.data);
@@ -62,8 +62,11 @@ export default function TimetableGrid() {
     return courses.find(course => course.code === courseCode);
   };
 
-  const getFacultyInfo = (facultyId) => {
-    return faculty.find(f => f._id === facultyId);
+  const getFacultyInfo = (facultyRef) => {
+    if (!facultyRef) return null;
+    // Handle both populated object and ObjectId string
+    const facultyId = typeof facultyRef === 'object' ? facultyRef._id : facultyRef;
+    return faculty.find(f => f._id === facultyId || f._id?.toString() === facultyId?.toString());
   };
 
   const getSlotColor = (type) => {
@@ -178,7 +181,9 @@ export default function TimetableGrid() {
                                 </div>
                                 {slot.faculty && (
                                   <div className="text-xs opacity-75 mb-1">
-                                    {getFacultyInfo(slot.faculty)?.fullName || 'Faculty'}
+                                    {typeof slot.faculty === 'object' && slot.faculty.fullName 
+                                      ? slot.faculty.fullName 
+                                      : getFacultyInfo(slot.faculty)?.fullName || 'Faculty'}
                                   </div>
                                 )}
                               </>

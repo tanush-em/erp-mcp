@@ -67,17 +67,23 @@ export async function GET(request, context) {
       
       // Format specific fields for better display
       if (collection === 'attendances') {
-        // Calculate attendance percentage for display
-        itemObj.attendancePercentage = Math.round(itemObj.attendancePercentage * 100) / 100;
+        // Ensure attendance percentage is properly formatted (round to 2 decimal places)
+        if (itemObj.attendancePercentage !== undefined && itemObj.attendancePercentage !== null) {
+          itemObj.attendancePercentage = Math.round(itemObj.attendancePercentage * 100) / 100;
+        }
       }
       
       if (collection === 'leaverequests') {
-        // Format dates for better display
+        // Keep dates as ISO strings for proper handling in frontend
+        // Frontend will format them for display
         if (itemObj.startDate) {
-          itemObj.startDate = new Date(itemObj.startDate).toLocaleDateString();
+          itemObj.startDate = new Date(itemObj.startDate).toISOString();
         }
         if (itemObj.endDate) {
-          itemObj.endDate = new Date(itemObj.endDate).toLocaleDateString();
+          itemObj.endDate = new Date(itemObj.endDate).toISOString();
+        }
+        if (itemObj.handledAt) {
+          itemObj.handledAt = new Date(itemObj.handledAt).toISOString();
         }
       }
       

@@ -3,18 +3,13 @@
 import { useState, useEffect } from 'react';
 import { 
   GraduationCap, 
-  Plus, 
   Search, 
-  Filter, 
-  Edit, 
-  Trash2, 
   Eye, 
   Mail, 
   Phone,
   User,
   CheckCircle,
-  XCircle,
-  MoreVertical
+  XCircle
 } from 'lucide-react';
 
 export default function StudentManagement() {
@@ -22,8 +17,6 @@ export default function StudentManagement() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
-  const [showAddForm, setShowAddForm] = useState(false);
-  const [editingStudent, setEditingStudent] = useState(null);
   const [showDetails, setShowDetails] = useState(null);
 
   useEffect(() => {
@@ -57,49 +50,6 @@ export default function StudentManagement() {
     return matchesSearch && matchesStatus;
   });
 
-  const handleAddStudent = async (studentData) => {
-    try {
-      // Here you would typically make an API call to add the student
-      console.log('Adding student:', studentData);
-      setShowAddForm(false);
-      fetchStudents(); // Refresh the list
-    } catch (error) {
-      console.error('Error adding student:', error);
-    }
-  };
-
-  const handleEditStudent = async (studentId, studentData) => {
-    try {
-      // Here you would typically make an API call to update the student
-      console.log('Editing student:', studentId, studentData);
-      setEditingStudent(null);
-      fetchStudents(); // Refresh the list
-    } catch (error) {
-      console.error('Error editing student:', error);
-    }
-  };
-
-  const handleDeleteStudent = async (studentId) => {
-    if (confirm('Are you sure you want to delete this student?')) {
-      try {
-        // Here you would typically make an API call to delete the student
-        console.log('Deleting student:', studentId);
-        fetchStudents(); // Refresh the list
-      } catch (error) {
-        console.error('Error deleting student:', error);
-      }
-    }
-  };
-
-  const toggleStudentStatus = async (studentId, currentStatus) => {
-    try {
-      // Here you would typically make an API call to toggle the status
-      console.log('Toggling student status:', studentId, !currentStatus);
-      fetchStudents(); // Refresh the list
-    } catch (error) {
-      console.error('Error toggling student status:', error);
-    }
-  };
 
   if (loading) {
     return (
@@ -124,17 +74,9 @@ export default function StudentManagement() {
             <GraduationCap className="w-6 h-6 text-blue-600" />
             <div>
               <h2 className="text-xl font-semibold text-gray-900">Student Management</h2>
-              <p className="text-sm text-gray-500">Manage student records and information</p>
+              <p className="text-sm text-gray-500">View student records and information</p>
             </div>
           </div>
-          
-          <button 
-            onClick={() => setShowAddForm(true)}
-            className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Add Student</span>
-          </button>
         </div>
       </div>
 
@@ -190,20 +132,10 @@ export default function StudentManagement() {
                   <button
                     onClick={() => setShowDetails(student._id)}
                     className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg"
+                    title="View Details"
                   >
                     <Eye className="w-4 h-4" />
                   </button>
-                  <button
-                    onClick={() => setEditingStudent(student)}
-                    className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg"
-                  >
-                    <Edit className="w-4 h-4" />
-                  </button>
-                  <div className="relative">
-                    <button className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg">
-                      <MoreVertical className="w-4 h-4" />
-                    </button>
-                  </div>
                 </div>
               </div>
               
@@ -231,154 +163,12 @@ export default function StudentManagement() {
                   )}
                   <span>{student.isActive ? 'Active' : 'Inactive'}</span>
                 </div>
-                
-                <button
-                  onClick={() => toggleStudentStatus(student._id, student.isActive)}
-                  className={`px-3 py-1 text-sm rounded-lg transition-colors ${
-                    student.isActive
-                      ? 'text-red-600 hover:bg-red-50'
-                      : 'text-green-600 hover:bg-green-50'
-                  }`}
-                >
-                  {student.isActive ? 'Deactivate' : 'Activate'}
-                </button>
               </div>
             </div>
           </div>
         ))}
       </div>
 
-      {/* Add Student Modal */}
-      {showAddForm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
-            <div className="p-6 border-b">
-              <h3 className="text-lg font-medium text-gray-900">Add New Student</h3>
-            </div>
-            <div className="p-6">
-              <form className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Full Name</label>
-                  <input
-                    type="text"
-                    required
-                    className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 placeholder-gray-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Roll Number</label>
-                  <input
-                    type="number"
-                    required
-                    className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 placeholder-gray-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Email</label>
-                  <input
-                    type="email"
-                    required
-                    className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 placeholder-gray-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Phone</label>
-                  <input
-                    type="tel"
-                    required
-                    className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 placeholder-gray-500"
-                  />
-                </div>
-              </form>
-            </div>
-            <div className="p-6 border-t flex justify-end space-x-3">
-              <button
-                onClick={() => setShowAddForm(false)}
-                className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200"
-              >
-                Cancel
-              </button>
-              <button 
-                onClick={() => handleAddStudent({})}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-              >
-                Add Student
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Edit Student Modal */}
-      {editingStudent && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
-            <div className="p-6 border-b">
-              <h3 className="text-lg font-medium text-gray-900">Edit Student</h3>
-            </div>
-            <div className="p-6">
-              <form className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Full Name</label>
-                  <input
-                    type="text"
-                    defaultValue={editingStudent.fullName}
-                    className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 placeholder-gray-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Roll Number</label>
-                  <input
-                    type="number"
-                    defaultValue={editingStudent.roll}
-                    className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 placeholder-gray-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Email</label>
-                  <input
-                    type="email"
-                    defaultValue={editingStudent.email}
-                    className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 placeholder-gray-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Phone</label>
-                  <input
-                    type="tel"
-                    defaultValue={editingStudent.phone}
-                    className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 placeholder-gray-500"
-                  />
-                </div>
-                <div>
-                  <label className="flex items-center space-x-2">
-                    <input
-                      type="checkbox"
-                      defaultChecked={editingStudent.isActive}
-                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                    />
-                    <span className="text-sm font-medium text-gray-700">Active</span>
-                  </label>
-                </div>
-              </form>
-            </div>
-            <div className="p-6 border-t flex justify-end space-x-3">
-              <button
-                onClick={() => setEditingStudent(null)}
-                className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200"
-              >
-                Cancel
-              </button>
-              <button 
-                onClick={() => handleEditStudent(editingStudent._id, {})}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-              >
-                Save Changes
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

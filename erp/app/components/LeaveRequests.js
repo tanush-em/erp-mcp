@@ -3,19 +3,14 @@
 import { useState, useEffect } from 'react';
 import { 
   BookOpen, 
-  Plus, 
   Search, 
-  Filter, 
   CheckCircle, 
   XCircle, 
   Clock,
   Calendar,
   User,
   AlertCircle,
-  Eye,
-  Edit,
-  MoreVertical,
-  Download
+  Eye
 } from 'lucide-react';
 
 export default function LeaveRequests() {
@@ -24,8 +19,6 @@ export default function LeaveRequests() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
-  const [showAddForm, setShowAddForm] = useState(false);
-  const [selectedRequest, setSelectedRequest] = useState(null);
   const [showDetails, setShowDetails] = useState(null);
 
   useEffect(() => {
@@ -66,36 +59,17 @@ export default function LeaveRequests() {
 
   const filteredRequests = leaveRequests.filter(request => {
     const student = getStudentInfo(request.student);
-    const matchesSearch = student && (
-      student.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      student.roll.toString().includes(searchTerm) ||
-      request.reason.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    const matchesSearch = !searchTerm || (student && (
+      student.fullName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      student.roll?.toString().includes(searchTerm) ||
+      request.reason?.toLowerCase().includes(searchTerm.toLowerCase())
+    )) || (!student && request.studentRoll?.toString().includes(searchTerm));
     
     const matchesStatus = statusFilter === 'all' || request.status === statusFilter;
     
     return matchesSearch && matchesStatus;
   });
 
-  const handleApproveRequest = async (requestId) => {
-    try {
-      // Here you would typically make an API call to approve the request
-      console.log('Approving request:', requestId);
-      fetchLeaveRequests(); // Refresh the list
-    } catch (error) {
-      console.error('Error approving request:', error);
-    }
-  };
-
-  const handleRejectRequest = async (requestId) => {
-    try {
-      // Here you would typically make an API call to reject the request
-      console.log('Rejecting request:', requestId);
-      fetchLeaveRequests(); // Refresh the list
-    } catch (error) {
-      console.error('Error rejecting request:', error);
-    }
-  };
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -124,18 +98,28 @@ export default function LeaveRequests() {
   };
 
   const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    });
+    if (!dateString) return 'N/A';
+    try {
+      return new Date(dateString).toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+      });
+    } catch (error) {
+      return 'Invalid Date';
+    }
   };
 
   const getDaysDifference = (startDate, endDate) => {
-    const start = new Date(startDate);
-    const end = new Date(endDate);
-    const diffTime = Math.abs(end - start);
-    return Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+    if (!startDate || !endDate) return 0;
+    try {
+      const start = new Date(startDate);
+      const end = new Date(endDate);
+      const diffTime = Math.abs(end - start);
+      return Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+    } catch (error) {
+      return 0;
+    }
   };
 
   if (loading) {
@@ -154,24 +138,6 @@ export default function LeaveRequests() {
 
   return (
     <div className="space-y-6">
-      {/* Action Buttons */}
-      <div className="bg-white rounded-lg shadow-sm border p-6">
-        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-end space-y-4 lg:space-y-0">
-          <div className="flex items-center space-x-3">
-            <button 
-              onClick={() => setShowAddForm(true)}
-              className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-            >
-              <Plus className="w-4 h-4" />
-              <span>New Request</span>
-            </button>
-            <button className="flex items-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700">
-              <Download className="w-4 h-4" />
-              <span>Export</span>
-            </button>
-          </div>
-        </div>
-      </div>
 
       {/* Stats */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -289,14 +255,10 @@ export default function LeaveRequests() {
                     <button
                       onClick={() => setShowDetails(request._id)}
                       className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg"
+                      title="View Details"
                     >
                       <Eye className="w-4 h-4" />
                     </button>
-                    <div className="relative">
-                      <button className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg">
-                        <MoreVertical className="w-4 h-4" />
-                      </button>
-                    </div>
                   </div>
                 </div>
                 
@@ -339,25 +301,6 @@ export default function LeaveRequests() {
                     <span className="capitalize">{request.status}</span>
                   </div>
                   
-                  {request.status === 'pending' && (
-                    <div className="flex items-center space-x-2">
-                      <button
-                        onClick={() => handleApproveRequest(request._id)}
-                        className="flex items-center space-x-1 px-3 py-1 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 text-sm"
-                      >
-                        <CheckCircle className="w-4 h-4" />
-                        <span>Approve</span>
-                      </button>
-                      <button
-                        onClick={() => handleRejectRequest(request._id)}
-                        className="flex items-center space-x-1 px-3 py-1 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 text-sm"
-                      >
-                        <XCircle className="w-4 h-4" />
-                        <span>Reject</span>
-                      </button>
-                    </div>
-                  )}
-                  
                   {request.status !== 'pending' && request.handledAt && (
                     <div className="text-sm text-gray-500">
                       Handled on {formatDate(request.handledAt)}
@@ -370,68 +313,6 @@ export default function LeaveRequests() {
         })}
       </div>
 
-      {/* Add Request Modal */}
-      {showAddForm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
-            <div className="p-6 border-b">
-              <h3 className="text-lg font-medium text-gray-900">New Leave Request</h3>
-            </div>
-            <div className="p-6">
-              <form className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Student</label>
-                  <select className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900">
-                    {students.map(student => (
-                      <option key={student._id} value={student._id}>
-                        {student.fullName} (Roll: {student.roll})
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Start Date</label>
-                    <input
-                      type="date"
-                      required
-                      className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">End Date</label>
-                    <input
-                      type="date"
-                      required
-                      className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900"
-                    />
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Reason</label>
-                  <textarea
-                    required
-                    rows={3}
-                    className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="Enter reason for leave..."
-                  />
-                </div>
-              </form>
-            </div>
-            <div className="p-6 border-t flex justify-end space-x-3">
-              <button
-                onClick={() => setShowAddForm(false)}
-                className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200"
-              >
-                Cancel
-              </button>
-              <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
-                Submit Request
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
