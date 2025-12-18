@@ -35,43 +35,43 @@ export default function ERPPortal() {
       id: 'dashboard',
       name: 'Dashboard',
       icon: HomeIcon,
-      description: 'Overview and analytics'
+      description: 'Overview and Analytics'
     },
     {
       id: 'attendance',
       name: 'Attendance',
       icon: Calendar,
-      description: 'Monthly calendar view'
+      description: 'Monthly Calendar View'
     },
     {
       id: 'timetable',
       name: 'Timetable',
       icon: Clock,
-      description: 'Weekly schedule grid'
+      description: 'Weekly Timetable and Schedule'
     },
     {
       id: 'students',
       name: 'Students',
       icon: GraduationCap,
-      description: 'Student management'
+      description: 'Student Database'
     },
     {
       id: 'faculty',
       name: 'Faculty',
       icon: UserCheck,
-      description: 'Faculty management'
+      description: 'Faculty Database '
     },
     {
       id: 'leaves',
       name: 'Leave Requests',
       icon: BookOpen,
-      description: 'Leave applications'
+      description: 'Leave Applications and Approvals'
     },
     {
       id: 'courses',
       name: 'Courses',
       icon: BookOpen,
-      description: 'Course management'
+      description: 'Course Management & Subject Handling'
     }
   ];
 

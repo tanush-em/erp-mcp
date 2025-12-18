@@ -59,11 +59,14 @@ export default function LeaveRequests() {
 
   const filteredRequests = leaveRequests.filter(request => {
     const student = getStudentInfo(request.student);
-    const matchesSearch = !searchTerm || (student && (
-      student.fullName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      student.roll?.toString().includes(searchTerm) ||
+    const studentName = request.studentName || (student ? student.fullName : null);
+    const matchesSearch = !searchTerm || (
+      studentName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      student?.fullName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      student?.roll?.toString().includes(searchTerm) ||
+      request.studentRoll?.toString().includes(searchTerm) ||
       request.reason?.toLowerCase().includes(searchTerm.toLowerCase())
-    )) || (!student && request.studentRoll?.toString().includes(searchTerm));
+    );
     
     const matchesStatus = statusFilter === 'all' || request.status === statusFilter;
     
@@ -243,7 +246,7 @@ export default function LeaveRequests() {
                     </div>
                     <div>
                       <h3 className="text-lg font-medium text-gray-900">
-                        {student ? student.fullName : 'Unknown Student'}
+                        {request.studentName || (student ? student.fullName : 'Unknown Student')}
                       </h3>
                       <p className="text-sm text-gray-500">
                         Roll: {request.studentRoll} • {formatDate(request.createdAt)}

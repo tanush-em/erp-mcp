@@ -97,24 +97,24 @@ export default function AttendanceCalendar() {
   const getAttendanceColor = (status) => {
     switch (status) {
       case 'P':
-        return 'bg-green-100 text-green-800 border-green-200';
+        return 'bg-green-500 text-white border-green-600 font-semibold';
       case 'A':
-        return 'bg-red-100 text-red-800 border-red-200';
+        return 'bg-red-500 text-white border-red-600 font-semibold';
       case 'DNM':
-        return 'bg-gray-100 text-gray-800 border-gray-200';
+        return 'bg-gray-300 text-gray-700 border-gray-400 font-semibold';
       default:
-        return 'bg-gray-50 text-gray-500 border-gray-200';
+        return 'bg-gray-100 text-gray-500 border-gray-300';
     }
   };
 
   const getAttendanceIcon = (status) => {
     switch (status) {
       case 'P':
-        return <CheckCircle className="w-3 h-3" />;
+        return <CheckCircle className="w-4 h-4" />;
       case 'A':
-        return <XCircle className="w-3 h-3" />;
+        return <XCircle className="w-4 h-4" />;
       case 'DNM':
-        return <Minus className="w-3 h-3" />;
+        return <Minus className="w-4 h-4" />;
       default:
         return null;
     }
@@ -331,16 +331,16 @@ export default function AttendanceCalendar() {
               </div>
               <div className="flex items-center space-x-6 text-sm">
                 <div className="flex items-center space-x-2">
-                  <div className="w-3 h-3 bg-green-100 border border-green-200 rounded"></div>
-                  <span className="text-gray-600">Present</span>
+                  <div className="w-4 h-4 bg-green-500 border-2 border-green-600 rounded"></div>
+                  <span className="text-gray-700 font-medium">Present</span>
                 </div>
                 <div className="flex items-center space-x-2">
-                  <div className="w-3 h-3 bg-red-100 border border-red-200 rounded"></div>
-                  <span className="text-gray-600">Absent</span>
+                  <div className="w-4 h-4 bg-red-500 border-2 border-red-600 rounded"></div>
+                  <span className="text-gray-700 font-medium">Absent</span>
                 </div>
                 <div className="flex items-center space-x-2">
-                  <div className="w-3 h-3 bg-gray-100 border border-gray-200 rounded"></div>
-                  <span className="text-gray-600">Not Marked</span>
+                  <div className="w-4 h-4 bg-gray-300 border-2 border-gray-400 rounded"></div>
+                  <span className="text-gray-700 font-medium">Not Marked</span>
                 </div>
               </div>
             </div>
@@ -367,17 +367,23 @@ export default function AttendanceCalendar() {
                 return (
                   <div
                     key={index}
-                    className={`h-12 border rounded-lg flex items-center justify-center text-sm font-medium transition-colors ${
+                    className={`h-14 border-2 rounded-lg flex items-center justify-center text-sm font-semibold transition-all hover:scale-105 ${
                       isToday 
-                        ? 'ring-2 ring-blue-500' 
+                        ? 'ring-2 ring-blue-500 border-blue-600 z-10' 
                         : attendance 
                           ? getAttendanceColor(attendance)
-                          : 'bg-gray-50 text-gray-400 border-gray-200'
+                          : 'bg-gray-100 text-gray-500 border-gray-300'
                     }`}
                   >
-                    <div className="flex flex-col items-center">
-                      <span className="text-xs">{day.getDate()}</span>
-                      {attendance && getAttendanceIcon(attendance)}
+                    <div className="flex flex-col items-center gap-0.5">
+                      <span className={`text-sm font-bold ${attendance === 'P' || attendance === 'A' ? 'text-white' : attendance === 'DNM' ? 'text-gray-700' : 'text-gray-500'}`}>
+                        {day.getDate()}
+                      </span>
+                      {attendance && (
+                        <span className={attendance === 'P' || attendance === 'A' ? 'text-white' : 'text-gray-700'}>
+                          {getAttendanceIcon(attendance)}
+                        </span>
+                      )}
                     </div>
                   </div>
                 );
