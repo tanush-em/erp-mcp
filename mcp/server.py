@@ -106,6 +106,18 @@ async def handle_list_resources() -> List[Resource]:
             name="Timetables",
             description="All timetable records in the ERP system",
             mimeType="application/json"
+        ),
+        Resource(
+            uri="erp://dashboard",
+            name="Live Dashboard",
+            description="Real-time ERP system overview: counts, pending actions, at-risk students, and key metrics",
+            mimeType="application/json"
+        ),
+        Resource(
+            uri="erp://student/{roll}",
+            name="Student by Roll",
+            description="Dynamic resource to fetch individual student by roll number. Use erp://student/1001 for roll 1001",
+            mimeType="application/json"
         )
     ]
     return resources
@@ -146,6 +158,25 @@ async def handle_read_resource(uri: str) -> str:
         cursor = timetables_collection.find({"isActive": True})
         timetables = await cursor.to_list(length=1000)
         return json.dumps(timetables, default=str)
+    
+    elif uri == "erp://dashboard":
+        return await _get_dashboard_data()
+    
+    elif uri.startswith("erp://student/"):
+        try:
+            roll = int(uri.split("/")[-1])
+            student = await students_collection.find_one({"roll": roll, "isActive": True})
+            if not student:
+                raise ValueError(f"Student with roll {roll} not found")
+            # Enrich with attendance and leave info
+            att = await attendance_collection.find_one({"studentRoll": roll}, sort=[("year", -1), ("month", 1)])
+            leaves = await leave_requests_collection.find({"studentRoll": roll}).to_list(length=5)
+            enriched = {**student, "recentAttendance": att, "recentLeaves": leaves}
+            return json.dumps(enriched, default=str)
+        except ValueError as e:
+            raise e
+        except (IndexError, ValueError):
+            raise ValueError(f"Invalid student URI. Use erp://student/{{roll_number}}")
     
     else:
         raise ValueError(f"Unknown resource: {uri}")
@@ -513,6 +544,91 @@ async def handle_list_tools() -> List[Tool]:
                     "parameters": {"type": "object", "description": "Query-specific parameters"}
                 }
             }
+        ),
+        
+        # Advanced Features (Project Showcase)
+        Tool(
+            name="search_faculty",
+            description="Search faculty by name, email, designation, or subjects they teach",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "name": {"type": "string", "description": "Search by name (partial match)"},
+                    "email": {"type": "string", "description": "Search by email"},
+                    "designation": {"type": "string", "description": "Filter by designation"},
+                    "subject": {"type": "string", "description": "Find faculty who teach this subject"},
+                    "isActive": {"type": "boolean", "description": "Filter by active status"}
+                }
+            }
+        ),
+        Tool(
+            name="get_students_at_risk",
+            description="Get students with low attendance who may need intervention (default threshold 75%)",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "threshold": {"type": "integer", "description": "Attendance percentage threshold (default 75)", "default": 75},
+                    "month": {"type": "string", "description": "Filter by month"},
+                    "year": {"type": "integer", "description": "Filter by year"},
+                    "limit": {"type": "integer", "description": "Max results to return (default 20)", "default": 20}
+                }
+            }
+        ),
+        Tool(
+            name="get_pending_actions",
+            description="Get a summary of items requiring attention: pending leave requests, low attendance alerts",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "include_leave_details": {"type": "boolean", "description": "Include full leave request details", "default": True}
+                }
+            }
+        ),
+        Tool(
+            name="bulk_create_students",
+            description="Create multiple students in one operation (useful for batch enrollment)",
+            inputSchema={
+                "type": "object",
+                "required": ["students"],
+                "properties": {
+                    "students": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "required": ["roll", "fullName", "email", "phone"],
+                            "properties": {
+                                "roll": {"type": "integer"},
+                                "fullName": {"type": "string"},
+                                "email": {"type": "string"},
+                                "phone": {"type": "string"}
+                            }
+                        }
+                    }
+                }
+            }
+        ),
+        Tool(
+            name="export_collection",
+            description="Export a collection as JSON or CSV format for reports and backup",
+            inputSchema={
+                "type": "object",
+                "required": ["collection"],
+                "properties": {
+                    "collection": {"type": "string", "enum": ["students", "faculties", "courses", "attendances", "leaverequests", "timetables"]},
+                    "format": {"type": "string", "enum": ["json", "csv"], "default": "json"},
+                    "filters": {"type": "object", "description": "Optional filters (e.g. isActive: true)"}
+                }
+            }
+        ),
+        Tool(
+            name="get_executive_summary",
+            description="Generate a human-readable executive summary report of the ERP system",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "include_recommendations": {"type": "boolean", "description": "Include AI-style recommendations", "default": True}
+                }
+            }
         )
     ]
 
@@ -568,6 +684,18 @@ async def handle_call_tool(name: str, arguments: Dict[str, Any]) -> List[TextCon
             return await get_erp_analytics(arguments)
         elif name == "complex_query":
             return await complex_query(arguments)
+        elif name == "search_faculty":
+            return await search_faculty(arguments)
+        elif name == "get_students_at_risk":
+            return await get_students_at_risk(arguments)
+        elif name == "get_pending_actions":
+            return await get_pending_actions(arguments)
+        elif name == "bulk_create_students":
+            return await bulk_create_students(arguments)
+        elif name == "export_collection":
+            return await export_collection(arguments)
+        elif name == "get_executive_summary":
+            return await get_executive_summary(arguments)
         else:
             raise ValueError(f"Unknown tool: {name}")
     except Exception as e:
@@ -1144,6 +1272,37 @@ async def get_weekly_timetable(args: Dict[str, Any]) -> List[TextContent]:
     except Exception as e:
         return [TextContent(type="text", text=f"Error getting weekly timetable: {str(e)}")]
 
+# Dashboard helper (for erp://dashboard resource)
+async def _get_dashboard_data() -> str:
+    """Generate real-time dashboard data"""
+    total_students = await students_collection.count_documents({"isActive": True})
+    total_faculty = await faculty_collection.count_documents({"isActive": True})
+    total_courses = await courses_collection.count_documents({"isActive": True})
+    pending_leaves = await leave_requests_collection.count_documents({"status": "pending"})
+    
+    low_attendance_cursor = attendance_collection.find({"attendancePercentage": {"$lt": 75}})
+    at_risk = await low_attendance_cursor.to_list(length=50)
+    at_risk_students = []
+    for r in at_risk[:10]:
+        s = await students_collection.find_one({"roll": r["studentRoll"]})
+        if s:
+            at_risk_students.append({"roll": r["studentRoll"], "name": s["fullName"], "percentage": r["attendancePercentage"]})
+    
+    dashboard = {
+        "generatedAt": datetime.now().isoformat(),
+        "summary": {
+            "students": total_students,
+            "faculty": total_faculty,
+            "courses": total_courses,
+        },
+        "alerts": {
+            "pendingLeaveRequests": pending_leaves,
+            "studentsAtRiskCount": len(at_risk),
+            "studentsAtRisk": at_risk_students,
+        },
+    }
+    return json.dumps(dashboard, indent=2, default=str)
+
 # Analytics and Complex Queries
 async def get_erp_analytics(args: Dict[str, Any]) -> List[TextContent]:
     """Get comprehensive ERP analytics and insights"""
@@ -1341,6 +1500,181 @@ async def complex_query(args: Dict[str, Any]) -> List[TextContent]:
     except Exception as e:
         return [TextContent(type="text", text=f"Error executing complex query: {str(e)}")]
 
+# Advanced Feature Implementations
+async def search_faculty(args: Dict[str, Any]) -> List[TextContent]:
+    """Search faculty by various criteria"""
+    query = {}
+    if "name" in args:
+        query["fullName"] = {"$regex": args["name"], "$options": "i"}
+    if "email" in args:
+        query["email"] = args["email"]
+    if "designation" in args:
+        query["designation"] = {"$regex": args["designation"], "$options": "i"}
+    if "subject" in args:
+        query["subjectsHandled"] = {"$regex": args["subject"], "$options": "i"}
+    if "isActive" in args:
+        query["isActive"] = args["isActive"]
+    
+    cursor = faculty_collection.find(query)
+    results = await cursor.to_list(length=100)
+    return [TextContent(type="text", text=json.dumps(results, default=str))]
+
+async def get_students_at_risk(args: Dict[str, Any]) -> List[TextContent]:
+    """Get students with low attendance"""
+    threshold = args.get("threshold", 75)
+    limit = args.get("limit", 20)
+    query = {"attendancePercentage": {"$lt": threshold}}
+    if "month" in args:
+        query["month"] = args["month"]
+    if "year" in args:
+        query["year"] = args["year"]
+    
+    cursor = attendance_collection.find(query).limit(limit)
+    records = await cursor.to_list(length=limit)
+    result = []
+    for r in records:
+        student = await students_collection.find_one({"roll": r["studentRoll"]})
+        if student:
+            result.append({
+                "roll": r["studentRoll"],
+                "name": student["fullName"],
+                "attendance_percentage": r["attendancePercentage"],
+                "month": r.get("month"),
+                "year": r.get("year"),
+            })
+    return [TextContent(type="text", text=json.dumps(result, default=str))]
+
+async def get_pending_actions(args: Dict[str, Any]) -> List[TextContent]:
+    """Get items requiring attention"""
+    pending_leaves = await leave_requests_collection.find({"status": "pending"}).to_list(length=50)
+    low_att = await attendance_collection.find({"attendancePercentage": {"$lt": 75}}).to_list(length=20)
+    
+    leave_details = []
+    if args.get("include_leave_details", True):
+        for lr in pending_leaves:
+            student = await students_collection.find_one({"roll": lr["studentRoll"]})
+            leave_details.append({
+                "id": str(lr["_id"]),
+                "student_roll": lr["studentRoll"],
+                "student_name": student["fullName"] if student else "Unknown",
+                "start_date": lr["startDate"],
+                "end_date": lr["endDate"],
+                "reason": lr.get("reason", ""),
+            })
+    
+    at_risk = []
+    for r in low_att[:10]:
+        s = await students_collection.find_one({"roll": r["studentRoll"]})
+        if s:
+            at_risk.append({"roll": r["studentRoll"], "name": s["fullName"], "percentage": r["attendancePercentage"]})
+    
+    summary = {
+        "pending_leave_requests": len(pending_leaves),
+        "leave_details": leave_details,
+        "students_at_risk_count": len(low_att),
+        "students_at_risk_preview": at_risk,
+    }
+    return [TextContent(type="text", text=json.dumps(summary, default=str))]
+
+async def bulk_create_students(args: Dict[str, Any]) -> List[TextContent]:
+    """Create multiple students"""
+    students = args["students"]
+    created = 0
+    errors = []
+    for s in students:
+        try:
+            data = {
+                "roll": s["roll"],
+                "fullName": s["fullName"],
+                "email": s["email"],
+                "phone": s["phone"],
+                "isActive": True,
+                "createdAt": datetime.now(),
+                "updatedAt": datetime.now(),
+            }
+            await students_collection.insert_one(data)
+            created += 1
+        except DuplicateKeyError:
+            errors.append(f"Roll {s['roll']} or email already exists")
+        except Exception as e:
+            errors.append(f"Roll {s['roll']}: {str(e)}")
+    
+    result = {"created": created, "total": len(students), "errors": errors}
+    return [TextContent(type="text", text=json.dumps(result, default=str))]
+
+async def export_collection(args: Dict[str, Any]) -> List[TextContent]:
+    """Export collection as JSON or CSV"""
+    coll_name = args["collection"]
+    fmt = args.get("format", "json")
+    filters = args.get("filters", {})
+    
+    coll_map = {
+        "students": students_collection,
+        "faculties": faculty_collection,
+        "courses": courses_collection,
+        "attendances": attendance_collection,
+        "leaverequests": leave_requests_collection,
+        "timetables": timetables_collection,
+    }
+    coll = coll_map.get(coll_name)
+    if not coll:
+        return [TextContent(type="text", text=f"Unknown collection: {coll_name}")]
+    
+    cursor = coll.find(filters)
+    docs = await cursor.to_list(length=5000)
+    
+    if fmt == "json":
+        return [TextContent(type="text", text=json.dumps(docs, indent=2, default=str))]
+    
+    if fmt == "csv" and docs:
+        import csv
+        import io
+        keys = list(docs[0].keys())
+        output = io.StringIO()
+        writer = csv.DictWriter(output, fieldnames=keys, extrasaction="ignore")
+        writer.writeheader()
+        for d in docs:
+            row = {k: str(v) if not isinstance(v, (str, int, float, bool)) else v for k, v in d.items()}
+            writer.writerow(row)
+        return [TextContent(type="text", text=output.getvalue())]
+    
+    return [TextContent(type="text", text="No data to export")]
+
+async def get_executive_summary(args: Dict[str, Any]) -> List[TextContent]:
+    """Generate executive summary report"""
+    include_recs = args.get("include_recommendations", True)
+    
+    total_students = await students_collection.count_documents({"isActive": True})
+    total_faculty = await faculty_collection.count_documents({"isActive": True})
+    total_courses = await courses_collection.count_documents({"isActive": True})
+    pending_leaves = await leave_requests_collection.count_documents({"status": "pending"})
+    at_risk_count = await attendance_collection.count_documents({"attendancePercentage": {"$lt": 75}})
+    
+    summary = [
+        f"# ERP Executive Summary",
+        f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M')}",
+        "",
+        "## Overview",
+        f"- **Students**: {total_students} active",
+        f"- **Faculty**: {total_faculty} active",
+        f"- **Courses**: {total_courses} active",
+        "",
+        "## Action Items",
+        f"- **Pending leave requests**: {pending_leaves}",
+        f"- **Students at risk** (attendance < 75%): {at_risk_count}",
+        "",
+    ]
+    
+    if include_recs:
+        summary.extend([
+            "## Recommendations",
+            "- Review and process pending leave requests promptly" if pending_leaves else "- No pending leave requests",
+            "- Follow up with at-risk students for attendance improvement" if at_risk_count else "- Attendance levels are healthy",
+            "- Use get_students_at_risk and get_pending_actions for detailed lists",
+        ])
+    
+    return [TextContent(type="text", text="\n".join(summary))]
+
 # Main server execution
 async def main():
     """Main server execution"""
@@ -1350,9 +1684,9 @@ async def main():
             write_stream,
             InitializationOptions(
                 server_name="erp-mcp-server",
-                server_version="1.0.0",
+                server_version="1.1.0",
                 capabilities=server.get_capabilities(
-                    notification_options=NotificationOptions(),
+                    notification_options=NotificationOptions(resources_changed=True),
                     experimental_capabilities={}
                 ),
             ),
